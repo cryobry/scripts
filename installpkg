@@ -1,0 +1,77 @@
+#!/usr/bin/env bash
+#
+# Identify host OS and execute package manager install command on input args
+#
+
+installpkg () {
+
+	_getOS () {
+
+		# Widely supported method to retrieve host $ID
+		if [[ -e /etc/os-release ]]; then
+		    source /etc/os-release
+		else
+		    echo "No /etc/os-release found!"
+		    echo "Your OS is unsupported!"
+		    return 1
+		fi
+	}
+
+
+	_setCmdArr () {
+
+		declare -ga _CmdArr
+
+		# Create OS-specific package install command arrays
+		if [[ "$ID" == "fedora" ]]; then
+			_CmdArr=( "dnf" "install" "-y" )
+		elif [[ "$ID" == "centos" && "$VERSION_ID" -ge 8 ]]; then
+			_CmdArr=( "dnf" "install" "-y" )
+		elif [[ "$ID" == "centos" && "$VERSION_ID" -le 7 ]]; then
+			_CmdArr=( "yum" "install" "-y" )
+		elif [[ "$ID" == "ubuntu" || "$ID" == "debian" ]]; then
+			_CmdArr=( "apt-get" "install" "-y" )
+		elif [[ "$ID" == "arch" ]]; then
+			_CmdArr=( "pacman" "-Syu" )
+		else
+			"Your OS is currently unsupported! You are welcome to add your own and submit a PR."
+			return 1
+		fi
+
+		# Append sudo if not running as root
+		[[ "$(whoami)" != "root" ]] && _CmdArr=( "sudo" "${_CmdArr[@]}" )
+	}
+
+
+	_installPackage () {
+
+		# Check for input arguments
+		if [[ "$#" -ge 1 ]]; then
+			if ! "${_CmdArr[@]}" "$@"; then
+				echo "Installation failed!"
+				return 1
+			fi
+		else
+			echo "You must supply one or more packages to install!"
+			return 1
+		fi
+	}
+
+
+
+	__main () {
+
+		_getOS && \
+		_setCmdArr && \
+		_installPackage "$@" && \
+        unset _CmdArr
+	}
+
+
+	__main "$@"
+}
+
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+	installpkg "$@"
+	exit $?
+fi

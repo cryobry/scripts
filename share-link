@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+
+ssh_server="bryanroessler.com"
+ssh_files_path="/var/www/repos.bryanroessler.com/files"
+www_files_path="https://repos.bryanroessler.com/files"
+
+share-link () {
+    if [[ "$#" -lt 1 ]]; then
+    	echo "You must provide at least one argument"
+    	exit 1
+    else
+    	local -a links_array
+    	for file in "$@"; do
+    		local ext="${file#*.}"
+    		local random32
+            random32=$(tr -dc 'a-zA-Z0-9' < /dev/urandom | fold -w 32 | head -n 1)
+    		local random_fname="${random32}.${ext}"
+    		scp "${file}" "${ssh_server}:${ssh_files_path}/${random_fname}"
+    		links_array+=("$www_files_path/$random_fname")
+    	done
+    	if [[ "${#links_array[@]}" == 1 ]]; then
+    		printf '%s' "${links_array[@]}" | xclip -sel c
+    	else
+    		printf '%s\n' "${links_array[@]}" | xclip -sel c
+    	fi
+    fi
+}
+
+share-link "$@"
+exit $?

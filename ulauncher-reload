@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+
+if pgrep ulauncher &>/dev/null; then
+    killall ulauncher
+    sleep 1
+fi
+
+exo-open /usr/share/applications/ulauncher.desktop

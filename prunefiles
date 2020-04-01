@@ -1,0 +1,91 @@
+#!/usr/bin/env bash
+#
+# prunefiles, a function to remove all but the n latest versions of a file
+# by Bryan Roessler
+#
+# This file can be sourced directly to import `prunefiles` or run as a script
+#
+# Useful to prune rpm repositories of obsolete packages
+#
+
+declare -a _filePrefixes
+
+prunefiles () {
+
+    #############
+    # DEFAULTS ##
+    #############
+
+    # Default number of matching files to keep
+    _keepInt=1
+
+
+    #############
+    # FUNCTIONS #
+    #############
+
+    _printHelpAndExit () {
+
+    cat <<-'EOF'
+USAGE:
+pruneFiles -k 3 thisfileprefix [thatfileprefix]
+
+OPTIONS
+    -k|--keep NUMBER
+        Keep NUMBER of latest files that matches each file prefix (Default: 1)
+EOF
+
+    # Exit using passed exit code
+    [[ -z $1 ]] && exit 0 || exit "$1"
+
+}
+
+    _parseInput () {
+
+        if _input=$(getopt -o +k: -l keep: -- "$@"); then
+            eval set -- "$_input"
+            while true; do
+                case "$1" in
+                    -k|--keep)
+                        shift && _keepInt=$1
+                        ;;
+                    --)
+                        shift && break
+                        ;;
+                esac
+                shift
+            done
+        else
+            echo "Incorrect option(s) provided"
+            _printHelpAndExit 1
+        fi
+
+        _filePrefixes=( "$@" )
+    }
+
+
+    _findAndRemove () {
+
+        for _filePrefix in "${_filePrefixes[@]}"; do
+            for _file in $(find . -maxdepth 1 -type f -name "${_filePrefix}*" -printf '%T@ %p\n' | sort -r -z -n | tail -n+$(($_keepInt + 1)) | awk '{ print $2; }'); do
+                rm "$_file"
+            done
+        done
+    }
+
+
+    __main () {
+
+        _parseInput "$@"
+        _findAndRemove
+
+    }
+
+    __main "$@"
+}
+
+# Allow script to be safely sourced
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    prunefiles "$@"
+    exit $?
+fi
