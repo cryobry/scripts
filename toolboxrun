@@ -1,4 +1,12 @@
 #!/usr/bin/env bash
+#
+# This program will execute commands in the specified toolbox container
+#
+# Author:
+#   Bryan Roessler
+# Source:
+#    https://git.bryanroessler.com/bryan/scripts/src/master/toolboxrun
+#
 toolboxrun () {
 
     _printHelpAndExit () {
@@ -133,5 +141,5 @@ EOF
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
     toolboxrun "$@"
-    exit "$_ec"
+    exit 0
 fi
