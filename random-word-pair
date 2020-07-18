@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# This script will create a random word pair with an underscore
+
+random_word_pair() {
+    # Constants 
+    local random_words num_random_words random_1 random_2 word_1 word_2
+    random_words=/usr/share/dict/words
+    # total number of non-random words available 
+    num_random_words=$(wc -l $random_words | cut -d" " -f 1)
+    # Get two random integers
+    random_1=$(shuf -i 1-"$num_random_words" -n 1)
+    random_2=$(shuf -i 1-"$num_random_words" -n 1)
+    # Get the nth word
+    word_1=$(sed "${random_1}q;d" "$random_words")
+    word_2=$(sed "${random_2}q;d" "$random_words")
+    # Sanitize words
+    word_1="${word_1,,}"
+    word_1="${word_1//-/}"
+    word_2="${word_2,,}"
+    word_2="${word_2//-/}"
+    echo "${word_1,,}_${word_2,,}"
+    return 0
+}
+
+# Allow this file to be executed directly if not being sourced
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+    random_word_pair
+    exit $?
+fi
