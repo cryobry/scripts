@@ -1,11 +1,10 @@
 // Copyright (c) 2021 Bryan C. Roessler
 // 
+// This script will probe the WSL2 instance for its randomly assigned IP
+// and open the requisite Windows Firewall ports
+//
 // This software is released under the MIT License.
 // https://opensource.org/licenses/MIT
-
-
-
-
 
 # Get the WSL2 IP address (randomized on init)
 $remoteport = bash.exe -c "ip -o -4 addr list eth0 | awk '{print $4}' | cut -d/ -f1"
