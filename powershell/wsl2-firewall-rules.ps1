@@ -6,7 +6,7 @@
 // This software is released under the MIT License.
 // https://opensource.org/licenses/MIT
 
-# Get the WSL2 IP address (randomized on init)
+# Get the WSL instance IP address (randomized on init)
 $remoteport = bash.exe -c "ip -o -4 addr list eth0 | awk '{print $4}' | cut -d/ -f1"
 
 # All the ports you want to forward separated by comma

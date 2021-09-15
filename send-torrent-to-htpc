@@ -1,9 +1,0 @@
-#!/usr/bin/env bash
-#
-# I develop on a laptop and prefer to send torrent files (linux isos, etc.) to my desktop
-#
-# I set .torrent links to open this script by default in firefox
-#
-
-mv "$1" "$HOME/Documents/torrents/"
-chmod +rw "$HOME/Documents/torrents/$1"
