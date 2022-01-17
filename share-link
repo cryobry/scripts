@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# A simple script with nautilus, wl-clipboard, and notify-send support for creating one or more shared links
 
 ssh_server="bryanroessler.com"
 ssh_files_path="/var/www/repos.bryanroessler.com/files"
@@ -9,11 +10,24 @@ if [[ "$#" -lt 1 ]]; then
 	exit 1
 fi
 
-for file in "$@"; do
+! hash wl-copy &>/dev/null && sudo dnf install -y wl-clipboard
+
+if [[ -v NAUTILUS_SCRIPT_SELECTED_URIS ]]; then
+	readarray -t files <<< "$NAUTILUS_SCRIPT_SELECTED_URIS"
+	files=("${files[@]#file://}")
+	files=("${files[@]//\%20/ }")
+else
+	files=("$@")
+fi
+
+for file in "${files[@]}"; do
+	[[ "$file" == "" ]] && continue
+	echo here
     fname="${file##*/}"
-    random32=$(tr -dc 'a-zA-Z0-9' < /dev/urandom | fold -w 32 | head -n 1)
-	rsync -a "${file}" "${ssh_server}:${ssh_files_path}/${random32}/"
-	links_array+=("$www_files_path/${random32}/$fname")
+    random64=$(tr -dc 'a-zA-Z0-9' < /dev/urandom | fold -w 64 | head -n 1)
+	echo "rsync -a ${file} ${ssh_server}:${ssh_files_path}/${random64}/"
+	rsync -a "${file}" "${ssh_server}:${ssh_files_path}/${random64}/"
+	links_array+=("$www_files_path/${random64}/${fname// /%20}")
 done
 
 if [[ "${#links_array[@]}" == 1 ]]; then
@@ -22,5 +36,6 @@ else
 	printf '%s\n' "${links_array[@]}" | wl-copy
 fi
 
-exit $?
+notify-send -t 3000 -i face-smile "share-link" "File(s) uploaded and link copied to clipboard"
 
+exit 0
