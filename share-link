@@ -26,7 +26,7 @@ for file in "${files[@]}"; do
     fname="${file##*/}"
     random64=$(tr -dc 'a-zA-Z0-9' < /dev/urandom | fold -w 64 | head -n 1)
 	echo "rsync -a ${file} ${ssh_server}:${ssh_files_path}/${random64}/"
-	rsync -a "${file}" "${ssh_server}:${ssh_files_path}/${random64}/"
+	rsync -a "${file}" "${ssh_server}:${ssh_files_path}/${random64}/" &
 	links_array+=("$www_files_path/${random64}/${fname// /%20}")
 done
 
