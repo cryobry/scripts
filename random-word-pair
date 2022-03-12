@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# This script will create a random word pair with an underscore
+# This script will create a random word pair with an underscore ex. turtle_ladder
 
 random_word_pair() {
     # Constants 

@@ -25,7 +25,7 @@ EOF
 
     parseInput () {
 
-        if _input=$(getopt -o +k: -l keep: -- "$@"); then
+        if _input=$(getopt -o +hk: -l help,keep: -- "$@"); then
             eval set -- "$_input"
             while true; do
                 case "$1" in
