@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# This script/function will unzip most filetypes automatically
 
 extract () {
 	if [ -f "$1" ] ; then

@@ -1,3 +1,0 @@
-#!/usr/bin/env bash
-
-ssh -t workstation.lan 'sudo systemctl suspend'

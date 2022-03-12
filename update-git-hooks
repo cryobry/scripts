@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
-#
 # This script will update the post-receive hooks of multiple bare git repos
-#
 #
 
 for i in /var/lib/git/gogs-repositories/bryan/*/hooks/post-receive; do

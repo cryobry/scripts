@@ -1,11 +1,10 @@
 #!/usr/bin/env bash
-#
 # Identify host OS and execute package manager install command on input args
 #
 
-installpkg () {
+installpkg() {
 
-	_getOS () {
+	getOS() {
 
 		# Widely supported method to retrieve host $ID
 		if [[ -e /etc/os-release ]]; then
@@ -18,36 +17,36 @@ installpkg () {
 	}
 
 
-	_setCmdArr () {
+	setCmdArr () {
 
-		declare -ga _CmdArr
+		declare -ga CMD_ARR
 
 		# Create OS-specific package install command arrays
 		if [[ "$ID" == "fedora" ]]; then
-			_CmdArr=( "dnf" "install" "-y" )
+			CMD_ARR=( "dnf" "install" "-y" )
 		elif [[ "$ID" == "centos" && "$VERSION_ID" -ge 8 ]]; then
-			_CmdArr=( "dnf" "install" "-y" )
+			CMD_ARR=( "dnf" "install" "-y" )
 		elif [[ "$ID" == "centos" && "$VERSION_ID" -le 7 ]]; then
-			_CmdArr=( "yum" "install" "-y" )
+			CMD_ARR=( "yum" "install" "-y" )
 		elif [[ "$ID" == "ubuntu" || "$ID" == "debian" ]]; then
-			_CmdArr=( "apt-get" "install" "-y" )
+			CMD_ARR=( "apt-get" "install" "-y" )
 		elif [[ "$ID" == "arch" ]]; then
-			_CmdArr=( "pacman" "-Syu" )
+			CMD_ARR=( "pacman" "-Syu" )
 		else
-			"Your OS is currently unsupported! You are welcome to add your own and submit a PR."
+			echo "Your OS is currently unsupported! You are welcome to add your own and submit a PR."
 			return 1
 		fi
 
 		# Append sudo if not running as root
-		[[ "$(whoami)" != "root" ]] && _CmdArr=( "sudo" "${_CmdArr[@]}" )
+		[[ "$(whoami)" != "root" ]] && CMD_ARR=( "sudo" "${CMD_ARR[@]}" )
 	}
 
 
-	_installPackage () {
+	installPackage() {
 
 		# Check for input arguments
 		if [[ "$#" -ge 1 ]]; then
-			if ! "${_CmdArr[@]}" "$@"; then
+			if ! "${CMD_ARR[@]}" "$@"; then
 				echo "Installation failed!"
 				return 1
 			fi
@@ -58,17 +57,15 @@ installpkg () {
 	}
 
 
+	main() {
 
-	__main () {
-
-		_getOS && \
-		_setCmdArr && \
-		_installPackage "$@" && \
-        unset _CmdArr
+		getOS && \
+		setCmdArr && \
+		installPackage "$@" && \
+        unset CMD_ARR
 	}
 
-
-	__main "$@"
+	main "$@"
 }
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
