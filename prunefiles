@@ -14,11 +14,11 @@ prunefiles () {
 		    pruneFiles -k 3 thisfileprefix [thatfileprefix]
 
 		OPTIONS
-		    -k|--keep NUMBER
+		    -k, --keep NUMBER
 		        Keep NUMBER of latest files that matches each file prefix (Default: 1)
-		    -h|--help
+		    -h, --help
 		        Print this help dialog and exit
-EOF
+	EOF
 
     # Exit using passed exit code
     [[ -z $1 ]] && exit 0 || exit "$1"
