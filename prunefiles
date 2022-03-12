@@ -10,12 +10,14 @@ prunefiles () {
     printHelpAndExit () {
 
     cat <<-'EOF'
-USAGE:
-pruneFiles -k 3 thisfileprefix [thatfileprefix]
+		USAGE:
+		    pruneFiles -k 3 thisfileprefix [thatfileprefix]
 
-OPTIONS
-	-k|--keep NUMBER
-		Keep NUMBER of latest files that matches each file prefix (Default: 1)
+		OPTIONS
+		    -k|--keep NUMBER
+		        Keep NUMBER of latest files that matches each file prefix (Default: 1)
+		    -h|--help
+		        Print this help dialog and exit
 EOF
 
     # Exit using passed exit code
