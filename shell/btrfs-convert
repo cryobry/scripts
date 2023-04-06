@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+
+btrfs_convert() {
+  declare d dir tmp_dir
+  for d in "$@"; do
+    dir="$d"
+    tmp_dir="$dir.tmp"
+    if [[ -d $dir && ! -d $tmp_dir ]]; then
+      if btrfs subvolume create "$tmp_dir" &>/dev/null &&
+      mv "$dir"/* "$tmp_dir"/ &&
+      rm -rf "$dir" &&
+      mv "$tmp_dir" "$dir"; then
+        echo "Successfully converted $dir to a btrfs subvolume"
+      else
+        echo "Failed to convert $dir to a btrfs subvolume"
+      fi
+    else
+      echo "Skipping conversion, $dir is missing or $tmp_dir exists!"
+    fi
+  done
+  unset d dir tmp_dir
+}
+
+if [[ $# -ge 1 ]]; then
+  btrfs_convert "$@"
+else
+  echo "btrfs_convert requires at least one argument (directory)"
+fi
