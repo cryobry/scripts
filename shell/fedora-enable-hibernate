@@ -1,0 +1,261 @@
+#!/usr/bin/env bash
+# This program will create a hibernation-ready swapfile in a btrfs subvolume and enable hibernation
+# Copyright Bryan C. Roessler 2021
+# This software is released under the Apache License.
+# https://www.apache.org/licenses/LICENSE-2.0
+# Tested on: Fedora 34
+
+VERBOSE=true
+function init() {
+
+    SWAP_FILE=${SWAP_FILE:-"/.swap/swapfile"}
+
+    [[ "$#" -lt 1 ]] && return 0
+
+    if input=$(getopt -s v -l image-size:,swap-size:,swap-file:,device-uuid:,verbose -- "$@"); then
+        eval set -- "$input"
+        while true; do
+            case "$1" in
+                --image-size)
+                    shift && IMAGE_SIZE="$1"
+                    ;;
+                --swap-size)
+                    shift && SWAP_SIZE="$1"
+                    ;;
+                --swap-file)
+                    declare -x SWAP_FILE
+                    shift && SWAP_FILE="$1"
+                    ;;
+                --device-uuid)
+                    shift && DEVICE_UUID="$1"
+                    ;;
+                --verbose|v)
+                    VERBOSE=true
+                    ;;
+                --)
+                    shift
+                    break
+                    ;;
+            esac
+            shift
+        done
+    else
+        echo "Incorrect option provided"
+        exit 1
+    fi
+}
+
+
+function debug() {
+    [[ "$VERBOSE" == true ]] && echo "$@"
+}
+
+
+function get_mem_size() {
+    declare -ig MEM_SIZE MEM_SIZE_GB
+    MEM_SIZE=$(free -b | grep "Mem:" | tr -s ' ' | cut -d" " -f2)
+    MEM_SIZE_GB=$(numfmt --from=iec --to-unit=G "$MEM_SIZE")
+    debug "MEM_SIZE_GB: ${MEM_SIZE_GB}"
+}
+
+
+#######################################
+# Get user y/N/iec response
+# Arguments:
+#   1. Text to display
+#   2. Global variable name to store response
+#######################################
+function response_iec() {
+    declare _response _response_l _response_u
+    read -r -p "$* [y/N/iec]: " _response
+    _response_l="${_response,,}"
+    _response_u="${_response^^}"
+    [[ "$_response_l" =~ ^(yes|y) ]] && return 0
+    if [[ "$_response" =~ ^([[:digit:]]+[[:alnum:]])$ || "$_response" =~ ^([[:digit:]]+)$ ]]; then
+        if ! declare -gi "$2"="$(numfmt --from=iec "$_response_u")"; then
+            echo "$_response is not a valid IEC value (ex. 42 512K 10M 7G 3.5T)"
+            return 1
+        else
+            declare -gi "$2"_GB="$(numfmt --from=iec --to-unit=Gi "$_response_u")"
+            return 0
+        fi
+    fi
+    exit 1
+}
+
+
+function set_swap_size() {
+    declare -gi SWAP_SIZE_GB
+    declare _response _response_l
+
+    # By default make the swapfile size the same as the system RAM
+    # This is the safest approach at the expense of disk space
+    # You can improve hibernation speed by tweaking $IMAGE_SIZE instead.
+    [[ ! -v SWAP_SIZE ]] && SWAP_SIZE=$MEM_SIZE
+
+    #SWAP_SIZE_MB=$(numfmt --from=iec --to-unit=Mi "$SWAP_SIZE")
+    SWAP_SIZE_GB=$(numfmt --from=iec  --to-unit=G "$SWAP_SIZE")
+    
+    # TODO incrementally use increasing IEC nominators 
+    echo "Ideal swapfile size is equal to system RAM: ${MEM_SIZE_GB}G"
+    
+    # TODO See above, also for image size
+    until response_iec "Set swapfile size to ${SWAP_SIZE_GB}G?" "SWAP_SIZE"; do
+        echo "Retrying..."
+    done
+    debug "SWAP_SIZE_GB: ${SWAP_SIZE_GB}G"
+}
+
+
+function set_image_size() {
+    declare _response _response_l
+    declare -i mem_size_target current_image_size current_image_size_gb
+
+    # Set ideal image size
+    if [[ ! -v IMAGE_SIZE ]]; then
+        # Sensible default (greater of 1/4 swapfile or ram size)
+        mem_size_target=$(( MEM_SIZE / 4 ))
+        swap_size_target=$(( SWAP_SIZE / 4 ))
+        IMAGE_SIZE=$(( mem_size_target > swap_size_target ? mem_size_target : swap_size_target ))
+        IMAGE_SIZE_GB=$(numfmt --from=iec --to-unit=G "$IMAGE_SIZE")
+    fi
+
+    current_image_size=$(cat /sys/power/image_size)
+    current_image_size_gb=$(numfmt --from=iec --to-unit=G "$current_image_size")
+  
+    echo "Ideal image target size is 1/4 of the RAM or swapfile size"
+    echo "Swapfile size: ${SWAP_SIZE_GB}G"
+    echo "RAM size: ${MEM_SIZE_GB}G"
+    until response_iec "Resize /sys/power/image_size from ${current_image_size_gb}G to ${IMAGE_SIZE_GB}G?" "IMAGE_SIZE"; do
+        echo "Retrying..."
+    done
+
+    debug "IMAGE_SIZE_GB: ${IMAGE_SIZE_GB}G"
+}
+
+
+function write_image_size() {
+    echo "$IMAGE_SIZE_GB" | sudo tee /sys/power/image_size
+}
+
+
+function make_swapfile () {
+    declare parent_dir
+    parent_dir=$(dirname "$SWAP_FILE")
+    ! [[ -d "$parent_dir" ]] && \
+        if ! sudo btrfs sub create "$parent_dir"; then
+            echo "Could not create a btrfs subvolume at $parent_dir"
+            echo "Please check your permissions/filesystem"
+            exit 1
+        fi
+    sudo touch "$SWAP_FILE"
+    #sudo truncate -s 0 "$SWAP_FILE"
+    sudo chattr +C "$SWAP_FILE"
+    sudo fallocate --length "$SWAP_SIZE" "$SWAP_FILE"
+    #sudo btrfs property set "$SWAP_FILE" compression none
+    #sudo dd if=/dev/zero of="$SWAP_FILE" bs=1M count="$SWAP_SIZE_MB" status=progress
+    sudo chmod 600 "$SWAP_FILE"
+    sudo mkswap "$SWAP_FILE"
+    #sudo swapon "$SWAP_FILE"
+}
+
+
+function add_to_dracut() {
+    echo 'add_dracutmodules+=" resume "' | sudo tee /etc/dracut.conf.d/50-resume.conf
+    sudo dracut -f
+}
+
+
+# function add_to_fstab() {
+#     echo "Backing up /etc/fstab to /tmp/fstab.bk"
+#     cp /etc/fstab /tmp/fstab.bk
+#     echo "$SWAP_FILE	none	swap	sw 0 0" | sudo tee -a /etc/fstab
+# }
+
+
+function get_offset() {
+    physical_offset=$(./btrfs_map_physical "$SWAP_FILE" | head -n2 | tail -n1 | cut -f9)
+    debug "Physical offset: $physical_offset"
+}
+
+
+function get_device() {
+    if ! [[ -v DEVICE_UUID ]]; then
+        DEVICE_UUID=$(findmnt -no UUID -T "$SWAP_FILE")
+        # if ! DEVICE_UUID=$(sudo blkid | grep /dev/mapper/luks | cut -d' ' -f3); then
+        #     echo "Guessing device UUID failed. Please specify a --device-uuid and rerun"
+        #     exit 1
+        # fi
+    fi
+    if [[ ! $DEVICE_UUID == ^UUID=* ]]; then
+        DEVICE_UUID="UUID=${DEVICE_UUID}"
+    fi
+    debug "Device UUID: $DEVICE_UUID"
+}
+
+
+function get_offset() {
+    declare -i physical_offset 
+
+    [[ -v RESUME_OFFSET ]] && return 0
+
+    RESUME_OFFSET=$(sudo filefrag -v "$SWAP_FILE" | head -n 4 | tail -n 1 | awk '{print $4}')
+    
+    # tempdir="$(mktemp --directory --tmpdir= enable-hibernate-XXXXXXXXX)"
+    # pushd "$tempdir" || return 1
+    # curl -O "https://raw.githubusercontent.com/osandov/osandov-linux/master/scripts/btrfs_map_physical.c"
+    # gcc -O2 -o btrfs_map_physical btrfs_map_physical.c
+    # page_size=$(getconf PAGESIZE)
+    # # ./btrfs_map_physical "$SWAP_FILE" | head -n2 | tail -n1 | cut -f9
+    # sudo bash -c "export physical_offset=$(./btrfs_map_physical "$SWAP_FILE" | head -n2 | tail -n1 | cut -f9);"
+    # echo "$physical_offset"
+    # popd || return 1
+    # rm -rf "$tempdir"
+    # RESUME_OFFSET=$(( physical_offset / page_size ))
+    debug "Resume offset: $RESUME_OFFSET"
+}
+
+
+function update_grub() {
+    echo "Backing up /etc/default/grub to /tmp/grub.bk"
+    cp /etc/default/grub /tmp/grub.bk
+    if grub_cmdline_linux=$(grep GRUB_CMDLINE_LINUX /etc/default/grub); then
+        if [[ $grub_cmdline_linux == *resume=* ]]; then
+            sudo sed -i "s/resume=.* /resume=${DEVICE_UUID} /" /etc/default/grub
+            sudo sed -i "s/resume_offset=.* /resume_offset=${RESUME_OFFSET} /" /etc/default/grub
+        else
+            sudo sed -i "s/GRUB_CMDLINE_LINUX_DEFAULT.*/& resume=${DEVICE_UUID} resume_offset=${RESUME_OFFSET}/" /etc/default/grub
+        fi
+    else
+        echo "Your /etc/default/grub cannot be edited automatically, please add: "
+        echo "resume=${DEVICE_UUID} resume_offset=${RESUME_OFFSET}"
+        echo "...to your kernel command line in /etc/default/grub,"
+        echo 'and run "sudo grub2-mkconfig -o /boot/efi/EFI/fedora/grub.cfg"'
+        exit 1
+    fi
+    
+    sudo grub2-mkconfig -o /boot/efi/EFI/fedora/grub.cfg
+}
+
+
+function live_apply() {
+    #declare devid
+    #devid=$(lsblk | grep luks |cut -d' ' -f4)
+    echo "${RESUME_OFFSET}" | sudo tee /sys/power/resume_offset
+}
+
+
+function main() {
+    init "$@" && \
+    get_mem_size && \
+    set_swap_size && \
+    set_image_size && \
+    make_swapfile && \
+    get_offset && \
+    add_to_dracut && \
+    update_grub && \
+    suggest_reboot
+}
+
+main "$@"
+exit $?

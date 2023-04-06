@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+[[ $# -eq 0 ]] && echo "You must provide a directory" && exit 1
+dir="$1"
+[[ $# -eq 2 ]] && SIZE="$2" || SIZE=1000 # set the default min dir size
+
+[[ ! -d "$dir" ]] && echo "Directory does not exist" && exit 1
+
+# Print dirs to be removed
+find "$dir" -mindepth 1 -type d -exec du -ks {} + | awk -v size="$SIZE" '$1 <= size' | cut -f 2-
+read -r -p "Is this OK? [y/N]" _response
+_response_l="${_response,,}"
+[[ ! "$_response_l" =~ ^(yes|y) ]] && echo "Exiting, no changes were made" && exit 0
+find "$dir" -mindepth 1 -type d -exec du -ks {} + | awk -v size="$SIZE" '$1 <= size' | cut -f 2- | xargs -d'\n' rm -rf

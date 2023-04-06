@@ -1,0 +1,50 @@
+#!/usr/bin/env python
+
+def check_access(access_type=4):
+    """Check if external address is allowed given access_type:
+    1=nzb
+    2=api
+    3=full_api
+    4=webui
+    5=webui with login for external
+    """
+    referrer = cherrypy.request.remote.ip
+
+    # CherryPy will report ::ffff:192.168.0.10 on dual-stack situation
+    # It will always contain that ::ffff: prefix
+
+    # Standardize input
+
+    for r in cfg.local_ranges():
+        if "/" in r:
+            prefix, suffix = r.split("/")
+            
+
+    def cidr_to_netmask(cidr):
+        cidr = int(cidr)
+        mask = (0xffffffff >> (32 - cidr)) << (32 - cidr)
+        return (str( (0xff000000 & mask) >> 24)   + '.' +
+                str( (0x00ff0000 & mask) >> 16)   + '.' +
+                str( (0x0000ff00 & mask) >> 8)    + '.' +
+                str( (0x000000ff & mask)))
+            
+
+
+    range_ok = not cfg.local_ranges() or bool(
+        [1 for r in cfg.local_ranges() if (referrer.startswith(r) or referrer.replace("::ffff:", "").startswith(r))]
+    )
+    allowed = referrer in ("127.0.0.1", "::ffff:127.0.0.1", "::1") or range_ok or access_type <= cfg.inet_exposure()
+    if not allowed:
+        logging.debug("Refused connection from %s", referrer)
+    return allowed
+
+
+def convert_cidr(ip,mask):
+    network = ''
+    iOctets = ip.split('.')
+    mOctets = mask.split('.')
+    network = str( int( iOctets[0] ) & int(mOctets[0] ) ) + '.'
+    network += str( int( iOctets[1] ) & int(mOctets[1] ) ) + '.'
+    network += str( int( iOctets[2] ) & int(mOctets[2] ) ) + '.'
+    network += str( int( iOctets[3] ) & int(mOctets[3] ) )
+    return network

@@ -1,0 +1,28 @@
+﻿# Jenna's laptop Sync
+
+([Media Type]=[Audio] ([Album Artist (auto)]=[Britney Spears],[Garth Brooks],[Miranda Lambert],[Alicia Keys],[Beyonce],[Christina Aguilera],[Destiny's Child],[Jimmy Buffett],[Justin Timberlake],[K/-Ci & Jojo],[Katy Perry],[Musiq Soulchild],[Huey Lewis & The News],[Lady Gaga],[2Pac],[Fruit Bats],[Fugees],[G Unit],[G. Love],[G. Love & Special Sauce],[Ghostland Observatory],[Goodie Mob],[Outkast],[Jennifer Hudson],[Jordin Sparks],[Rod Stewart],[Stevie Wonder],[Black Eyed Peas],[Carrie Underwood],[Cee/-Lo],[Fergie],[Ne/-Yo],[Usher],[Justin Bieber] or [Rating]=>=3 or [Genre]=[Country]) -[Genre]=[Hard Rock],[Jazz],[Christmas],[Soul] -[Album Artist (auto)]=[Bright Eyes],[Sufjan Stevens],[Tech N9ne],[A.A. Bondy],[ABBA],[The Almost],[Antony & The Johnsons],[The Blow],[Built To Spill],[Daniel Johnston],[Deer Tick],[Devendra Banhart],[The Doors],[Easy Star All/-Stars],[Iron Maiden],[Jel],[Loudon Wainwright III],[Lucinda Williams],[Opeth],[Ween],[Weerd Science],[Zion I],[The Antlers],[Au Revoir Simone],[Dashboard Confessional],[Grant/-Lee Phillips],[Wheatus],[XTC],[Incubus /(UK/)],[Infected Mushroom],[The Mars Volta],[Meat Loaf],[Midnight Juggernauts],[My Chemical Romance],[The Olivia Tremor Control],[Omar Rodriguez Lopez],[PNAU],[Pretty Girls Make Graves],[Sopor Aeternus & The Ensemble Of Shadows],[The Bee Gees],[The Bellamy Brothers],[Benny Benassi],[Bizzy Bone],[Bizzy Bone & Layzie Bone],[Black Ice],[Black Moth Super Rainbow],[Black Rebel Motorcycle Club],[Bohagon],[Boot Camp Clik],[Buckshot & 9th Wonder],[Busdriver],[C/-Murder],[Camp Lo],[Crime Mob],[Crunchy Black],[David Bowie],[David Peel & The Lower East Side],[Delinquent Habits],[Dem Franchize Boyz],[Dirty],[The Flying Burrito Brothers],[Funkadelic],[Girl Talk],[Govi],[Green Day],[Harlem Shakes],[Hello Saferide],[Hem],[Her Space Holiday],[Herbie Hancock],[Hot Chip],[Hot Hot Heat],[Hudson Mohawke],[Incubus],[James Taylor],[Jamie Cullum],[Jimmy Eat World],[Joe Walsh],[Johnathan Rice],[Johnny And The Moon],[Joshua Redman],[Julian Casablancas],[Juno Reactor],[Justice],[K/-OS],[Kansas],[Koopsta Knicca],[Kottonmouth Kings],[Krayzie Bone],[Layzie Bone],[Lit],[Loreena McKennitt],[Lou Reed],[Matt & Kim],[Megadeth],[Menomena],[Mercan Dede],[Michael Andrews],[Midlake],[Mika],[Milow],[Mushroom],[Mystery Jets],[Neil Young],[Nick Drake],[No More Kings],[Old Canes],[The Owls],[Paul Oakenfold],[Pedro The Lion],[Pee Shy],[Peter Frampton],[Peter Schilling],[Peter, Paul & Mary],[The Pigeon Detectives],[Pink Floyd],[Point Juncture, WA],[Presets],[Primus],[R.E.M.],[Raconteurs],[Radiohead],[Rage Against The Machine],[Rakim],[Rent],[Roman Numerals],[Roy Jones Jr.],[Røyksopp],[The Sails],[Saint Etienne],[Sam Cooke],[She & Him],[Sheek Louch],[Shiny Toy Guns],[Shop Boyz],[Sigur Rós],[Snow Patrol],[Songs Ohia],[The Southern Sea],[The String Quartet],[Strip Music],[Taking Back Sunday],[Thievery Corporation],[Thrice],[Throw Me the Statue],[Tilly and the Wall],[Tom Petty],[Tom Waits],[Tweaker],[Uncle Tupelo],[UNK],[UNLV],[Various],[The Verve],[White Rabbits],[The White Stripes],[Young Jeezy],[Zumpano],[Elliott Smith],[Guns N' Roses],[Jimi Hendrix],[John Lennon],[Led Zeppelin],[Mirah],[Modest Mouse],[Mt. St. Helens Vietnam Band],[Muddy Waters],[Muse],[Neutral Milk Hotel],[Nickel Creek],[Nirvana],[Fleetwood Mac],[George Harrison],[Get Cape. Wear Cape. Fly],[Ozzy Osbourne],[Pearl Jam],[Pinback],[Rufus Wainwright],[Sea Wolf],[Seabear],[Iron & Wine],[Cat Stevens],[Katie Melua],[Silverchair],[Tricky],[Warrant] -[Album Type]=[Multiple artists /(complete/)]) ~a
+
+
+
+
+
+# Rename, Copy & Move
+
+IfElse(
+  IsEqual([Media Type], Audio),
+    If(IsEqual([Media Sub Type],Podcast,0), Podcasts\[Album],Music\[Album Artist (auto)]\/([Year]/) [Album]\),
+  IsEqual([Media Sub Type], Movie),
+    Movies\IfElse(!IsEmpty([Series,0]),[Series]\)[Name],
+  IsEqual([Media Sub Type], TV Show),
+    TV\[Series]\Season PadNumber([Season], 2)
+)
+
+
+IfElse(
+  IsEqual([Media Type], Audio),
+    If(IsEmpty([Disc #],1), 1[Track #] - [Artist] - [Name], [Disc #][Track #] - [Artist] - [Name]),
+  IsEqual([Media Sub Type], Movie),
+    [Name] /([Year]/),
+  IsEqual([Media Sub Type], TV Show),
+    [Series] - S[Season]E[Episode] - [Name]
+)

@@ -1,0 +1,107 @@
+#!/usr/bin/env bash
+# This script will report S.M.A.R.T. stats and perform tests on all available disks
+# Copyright 2021 Bryan C. Roessler
+
+init() {
+
+    if [[ $EUID != 0 ]]; then
+        echo "Must run as root!" && exit 1
+    fi
+
+    [[ ! -x $(command -v smartctl) ]] && echo "smartctl not found! Please install smartmontools." && exit 1
+
+    if _input=$(getopt -o +slihatd -l short,long,info,health,all,temp,daemon,help -- "$@"); then
+        eval set -- "$_input"
+        while true; do
+            case "$1" in
+                --short|-s)
+                    SHORT="true"
+                    ;;
+                --long|-l)
+                    LONG="true"
+                    ;;
+                --info|-i)
+                    INFO="true"
+                    ;;
+                --health|-h)
+                    HEALTH="true"
+                    ;;
+                --all|-a)
+                    ALL="true"
+                    ;;
+                --temp|-t)
+                    TEMP="true"
+                    ;;
+                --daemon|-d)
+                    DAEMON="true"
+                    ;;                                                         
+                --help)
+                    printhelp
+                    ;;
+                --)
+                    shift
+                    break
+                    ;;
+            esac
+            shift
+        done
+    else
+        echo "Error: incorrect option provided" && printhelp && exit 1
+    fi
+}
+
+
+printhelp() {
+
+    cat <<- 'EOF'
+		USAGE:
+		    smart-tests [OPTION]...
+
+		OPTIONS
+		    --short,-s
+		        Perform S.M.A.R.T short self-test
+		    --long,-l
+		        Perform S.M.A.R.T long self-test
+		    --info,-i
+		        Print S.M.A.R.T info
+		    --health,-h
+		        Perform S.M.A.R.T health assessment
+		    --temp,-t
+		        Report disk temperatures
+		    --daemon,-d
+		        Run in daemon mode for automatic health checks
+		    --all,-a
+		        Run on all drives (default)
+		    --help
+		        Print this help dialog and exit
+	EOF
+}
+
+
+main() {
+
+    mapfile -t drives_scanned < <(smartctl --scan)
+
+    for drive in "${drives_scanned[@]}"; do
+
+        name=$(echo "$drive" | cut -f1 -d" ")
+        type=$(echo "$drive" | cut -f3 -d" ")
+
+        echo "$name ($type)"
+
+        suffix=("-d" "$type" "$name")
+
+        [[ -v SHORT ]] && smartctl -t short "${suffix[@]}"
+        [[ -v LONG ]] && smartctl -t long "${suffix[@]}"
+        [[ -v INFO ]] && smartctl -i "${suffix[@]}"
+        [[ -v HEALTH ]] && smartctl -H "${suffix[@]}"
+        [[ -v ALL ]] && smartctl -a "${suffix[@]}"
+        [[ -v TEMP ]] && smartctl -a "${suffix[@]}" | grep "Current Drive Temperature:"
+        [[ -v DAEMON ]] && smartctl -t short "${suffix[@]}"
+
+    done
+}
+
+
+init "$@"
+main "$@"

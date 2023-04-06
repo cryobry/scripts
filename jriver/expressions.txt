@@ -1,0 +1,31 @@
+IfElse(
+  IsEqual([Media Type], Audio), 
+    If(IsEqual([Media Sub Type], Podcast), 
+      podcasts/Clean([Album],3),
+      music/Clean([Album Artist (auto)],3)/[[Year]] Clean([Album],3)),
+  IsEqual([Media Sub Type], Movie), 
+    movies/Clean([Name], 3),
+  IsEqual([Media Sub Type], TV Show), 
+    tv/Clean([Series],3)/Season PadNumber([Season], 2)
+)
+
+
+
+
+IfElse(
+  IsEqual([Media Type], Audio), 
+      If(IsEmpty([Disc #],1), 
+        1[Track #], 
+        [Disc #][Track #]) - Clean([Artist] - [Name],3),
+  IsEqual([Media Sub Type], Movie), 
+    Clean([Name],3) [[Year]],
+  IsEqual([Media Sub Type], TV Show), 
+    Clean([Series] - S[Season]E[Episode] - [Name],3)
+)
+
+
+
+
+Music\Clean([Album Artist (auto)],3)\[[Year]] Clean([Album],3)
+
+If(IsEmpty([Disc #],1), 1[Track #], [Disc #][Track #]) - Clean([Artist] - [Name],3)

@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+rsync -av --info=progress2 --delete htpc.lan:/mnt/m/Movies/ htpc.lan:/mnt/n/Movies/ /mnt/array/movies/ && \
+rsync -av --info=progress2 --delete htpc.lan:/mnt/m/TV/ htpc.lan:/mnt/n/TV/ /mnt/array/tv/ && \
+rsync -av --info=progress2 --delete laptop.lan:/home/bryan/documents ~/documents && \
+rsync -av --info=progress2 --delete laptop.lan:/home/bryan/media/music /mnt/array/music
+

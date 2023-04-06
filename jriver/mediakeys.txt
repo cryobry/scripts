@@ -1,0 +1,17 @@
+[Media Type]=[Audio] [Artist]=[Elton John] [Rating]=>=1 ~sort=Random
+
+MC Play/Pause:
+curl -s -o /dev/null -u Bryanhoop:Alonzo14 http://localhost:52199/MCWS/v1/Control/MCC?Command=10000
+
+MC Next Track:
+curl -s -o /dev/null -u Bryanhoop:Alonzo14 http://localhost:52199/MCWS/v1/Control/MCC?Command=10003
+
+MC Prev Track:
+curl -s -o /dev/null -u Bryanhoop:Alonzo14 http://localhost:52199/MCWS/v1/Control/MCC?Command=10004
+
+
+case $TERM in
+    xterm*)
+        precmd () {print -Pn "\e]0;${PWD/$HOME/\~}\a"}
+        ;;
+esac

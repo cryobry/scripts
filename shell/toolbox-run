@@ -1,0 +1,145 @@
+#!/usr/bin/env bash
+#
+# This program will execute commands in the specified toolbox container
+#
+# Author:
+#   Bryan Roessler
+# Source:
+#    https://git.bryanroessler.com/bryan/scripts/src/master/toolboxrun
+#
+toolboxrun () {
+
+    _printHelpAndExit () {
+
+        cat <<-'EOF'
+USAGE
+    toolboxRun -c NAME [-i NAME] [-r RELEASE] [--no-sh] [-h] [-s] [-d] [COMMANDS [ARGS...]]
+
+COMMANDS
+
+    COMMANDS to run in the container (e.g. the current active file, an external
+    build script, a program residing in the container, etc.)
+    Can be empty (default entrypoint)
+
+OPTIONS
+
+    --container NAME, -c NAME
+        Assign  a  different  NAME  to the toolbox container. This is useful for creating multiple
+        toolbox containers from the same base image, or for entirely  customized  containers  from
+        custom-built base images.
+
+        If the toolbox container NAME already exists, the command passed to toolboxRun will be
+        executed in the existing toolbox. If toolbox container NAME does not exist, it will be
+        created and the COMMAND will then be run in it.
+
+    --image NAME, -i NAME
+        Change the NAME of the base image used to create the toolbox container. This is useful for
+        creating containers from custom-built base images.
+
+    --release RELEASE, -r RELEASE
+        Create a toolbox container for a different operating system RELEASE than the host.
+
+    --ephemeral
+        The toolbox will be removed after the COMMAND is executed
+
+    --recreate
+        If the toolbox NAME already exists, it will first be removed and recreated
+
+    --no-sh, -n
+        Do not wrap COMMANDS in 'sh -c'
+
+    --help, -h
+        Print this help message and exit (overrides --silent)
+
+EOF
+
+        # Exit using passed exit code
+        [[ -z $1 ]] && exit 0 || exit "$1"
+    }
+
+
+    _parseInput () {
+
+        # Parse input and set switches using getopt
+        if _input=$(getopt -o +c:i:r:nh -l container:,image:,release:,ephemeral,recreate,no-sh,help -- "$@"); then
+            eval set -- "$_input"
+            while true; do
+                case "$1" in
+                    --container|-c)
+                        shift && export _cname="$1"
+                        ;;
+                    --image|-i)
+                        shift && export _image=("-i" "$1")
+                        ;;
+                    --release|-r)
+                        shift && export _release=("-r" "$1")
+                        ;;
+                    --ephemeral)
+                        export _ephemeral="true"
+                        ;;
+                    --recreate)
+                        export _recreate="true"
+                        ;;
+                    --no-sh|-n)
+                        export _no_sh="true"
+                        ;;
+                    --help|-h)
+                        _printHelpAndExit 0
+                        ;;
+                    --)
+                        shift
+                        break
+                        ;;
+                esac
+                shift
+            done
+        else
+            echo "Incorrect options provided"
+            _printHelpAndExit 1
+        fi
+
+        # Create _pre_commands_array from remaining arguments
+        # shift getopt parameters away
+        shift $((OPTIND - 1))
+        # Assume program name is first argument
+        export _program="$1"
+        # create command array
+        declare -ga _cmd_array=("$@")
+    }
+
+
+    _shWrap () { [[ -z $_no_sh ]] && _cmd_array=("sh" "-c" "${_cmd_array[*]}"); }
+    _toolboxExists () { toolbox list -c | cut -d ' ' -f 3 | grep -w "$1" > /dev/null 2>&1; }
+    _toolboxCreate () { toolbox create -c "$1" "${_image[@]}" "${_release[@]}"; }
+    _toolboxRemove () { toolbox rm -f "$1"; }
+    _toolboxRun () { toolbox run -c "$1" "${_cmd_array[@]}"; }
+
+
+    __main () {
+
+        # Get input
+        _parseInput "$@"
+        # Wrap command with `sh -c` by default
+        [[ -z $_no_sh ]] && _shWrap
+        # Check if container exists
+        if _toolboxExists "$_cname"; then
+            if [[ -n $_recreate || -n $_ephemeral ]]; then
+                _toolboxRemove "$_cname"
+            fi
+        else
+            _toolboxCreate "$_cname"
+        fi
+
+        _toolboxRun "$_cname" && export _ec="$?"
+
+        [[ -n $_ephemeral ]] && _toolboxRemove "$_cname"
+    }
+
+    # Allow this function to be executed directly
+    __main "$@"
+}
+
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    toolboxrun "$@"
+    exit 0
+fi

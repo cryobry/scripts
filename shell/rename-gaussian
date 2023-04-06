@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+
+find . -name "*.gau" -print | xargs sed -i 's/'nproc'/'NProcShared'/g'
+find . -name "*.gau" -print | xargs sed -i 's/'mem=1GB'/'mem=500MB'/g'
+
+find . -name "*.gau" -print | xargs sed -i 's/'nproc=1'/'NProcShared=8'/g'
+find . -name "*.gau" -print | xargs sed -i 's/'mem=1GB'/'mem=8GB'/g'
+
+MYFILES=*.gau
+for f in $MYFILES
+do
+    rung09 $f
+done
+
+for i in {716269..716309}
+do
+    canceljob $i
+done
+
+find . -name "*.gau" -print | xargs sed -i 's/'NProcShared'/'nproc'/g'
+find . -name "*.gau" -print | xargs sed -i 's/'mem=500MB'/'mem=1GB'/g'
+
+find . -name "*.gau" -print | xargs sed -i 's/'NProcShared=8'/'NProcShared=1'/g'
+find . -name "*.gau" -print | xargs sed -i 's/'mem=8GB'/'mem=500MB'/g'
+
+
+daytime
+find . -name "*.gau" -print | xargs sed -i 's/'NProcShared=1'/'NProcShared=2'/g'
+find . -name "*.gau" -print | xargs sed -i 's/'mem=500MB'/'mem=2GB'/g'

@@ -1,0 +1,79 @@
+#!/usr/bin/env bash
+# prunefiles, a script/function to remove all but the n latest versions of a file
+#
+
+prunefiles () {
+
+    declare -ag PREFIXES
+    declare -g KEEP_INT=1 # default # of files to keep
+
+    printHelpAndExit () {
+
+    cat <<-'EOF'
+		USAGE:
+		    pruneFiles -k 3 thisfileprefix [thatfileprefix]
+
+		OPTIONS
+		    -k, --keep NUMBER
+		        Keep NUMBER of latest files that matches each file prefix (Default: 1)
+		    -h, --help
+		        Print this help dialog and exit
+	EOF
+
+    # Exit using passed exit code
+    [[ -z $1 ]] && exit 0 || exit "$1"
+
+    }
+
+    parseInput () {
+
+        if _input=$(getopt -o +hk: -l help,keep: -- "$@"); then
+            eval set -- "$_input"
+            while true; do
+                case "$1" in
+                    -k|--keep)
+                        shift && KEEP_INT=$1
+                        ;;
+                    -h|--help)
+                        printHelpAndExit 0
+                        ;;
+                    --)
+                        shift; break
+                        ;;
+                esac
+                shift
+            done
+        else
+            echo "Incorrect option(s) provided"
+            printHelpAndExit 1
+        fi
+
+        PREFIXES=( "$@" )
+    }
+
+
+    findAndRemove () {
+
+        declare prefix file
+
+        for prefix in "${PREFIXES[@]}"; do
+            for file in $(find . -maxdepth 1 -type f -name "${prefix}*" -printf '%T@ %p\n' | sort -r -z -n | tail -n+$((KEEP_INT + 1)) | awk '{ print $2; }'); do
+                rm "$file"
+            done
+        done
+    }
+
+
+    main () {
+        parseInput "$@"
+        findAndRemove
+    }
+
+    main "$@"
+}
+
+# Allow script to be safely sourced
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    prunefiles "$@"
+    exit $?
+fi

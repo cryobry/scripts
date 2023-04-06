@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# This script will update the post-receive hooks of multiple bare git repos
+#
+
+for i in /var/lib/git/gogs-repositories/bryan/*/hooks/post-receive; do
+
+    # Get repo name
+    rn="${i%/hooks/post-receive}"
+    rn="${rn##*/}"
+
+    # Don't duplicate the line if it already exists
+    while IFS= read -r line; do
+        [[ "$line" == "git push --mirror git@github.com:cryobry/${rn}" ]] && continue
+    done < "$i"
+
+    # Append the line
+    #echo "git push --mirror git@github.com:cryobry/${rn} to $i"
+    echo "git push --mirror git@github.com:cryobry/${rn}" >> "$i"
+done
