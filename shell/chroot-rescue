@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+# This script will mount and chroot a linux system
+# Copyright 2024 Bryan C. Roessler
+
+lsblk
+
+# Set defaults
+RP=${ROOT_PART:-/dev/nvme0n0p3}
+BP=${BOOT_PART:-/dev/nvme0n0p1}
+
+echo "Press enter to accept default value"
+read -r -p "Root partition [$RP]: " RP
+read -r -p "Boot partition [$BP]: " BP
+MD="${MOUNT_DIR:-/mnt/${RP##*/}}"
+[[ -d $MD ]] && MD=$MD-$RANDOM
+read -r -p "Mount directory [$MD]: " MD
+
+[[ -e $RP && -e $BP ]] || exit 1
+
+# Mount and entire the chroot
+echo "Mounting and entering chroot"
+sudo mkdir -p "$MD" &&
+sudo mount "$RP" "$MD" &&
+for i in proc sys dev; do
+  sudo mount --bind /$i "$MD/$i"
+done &&
+sudo mount "$BP" "$MD/boot/efi" &&
+sudo chroot "$MD";
+
+# After chroot
+echo "Exiting and unmounting chroot"
+sudo umount "$MD/boot/efi"
+for i in proc sys dev; do
+  sudo umount "$MD/$i"
+done 
+sudo umount "$MD"
+
+exit $?

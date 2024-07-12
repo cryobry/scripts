@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+# This script launches a multi-pane tmux session for multiple remotes
+# TODO make remote sessions run in tmux too
+# Copyright 2024 Bryan C. Roessler
+
+# Use DEBUG=1 ./tmux-management to enable debugging
+DEBUG=${DEBUG:-0}
+
+debug() { (( DEBUG )) && echo "Debug: $*"; }
+
+HOSTS=(
+  workstation
+  laptop
+  #hartmanlab
+)
+
+debug "Hosts list: ${HOSTS[*]}"
+
+# Remove localhost from HOSTS list
+TARGETS=()
+for HOST in "${HOSTS[@]}"; do
+    if [[ "$HOST" != "$HOSTNAME" ]]; then
+        TARGETS+=("$HOST")
+    fi
+done
+unset HOST
+
+# Create a unique session name from the remaining hosts
+SESSION=$(IFS=- ; echo "${TARGETS[*]}")
+
+debug "Targets: ${TARGETS[*]}"
+debug "Session: $SESSION"
+
+# Connect to existing session
+if tmux has-session -t "$SESSION" &> /dev/null; then
+  tmux attach -t "$SESSION";
+else # create new tmux session
+  tmux new-session -d -s "$SESSION" -n "$SESSION";
+  # Create a new pane for each TARGET
+  for TARGET in "${TARGETS[@]}"; do
+    tmux split-window -h;
+    tmux send "ssh $TARGET" enter;
+  done
+  tmux set-window-option synchronize-panes on;
+  tmux select-pane -t "$SESSION:0.0"
+  tmux send 'clear' enter;
+  tmux attach-session -t "$SESSION"
+fi
+unset TARGET
