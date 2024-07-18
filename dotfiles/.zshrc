@@ -4,10 +4,11 @@ unsetopt beep
 bindkey -e
 
 ### AUTOCOMPLETION ###
-autoload -Uz compinit
-compinit
 zstyle ':completion::complete:*' gain-privileges 1
 zstyle ':completion:*' menu select
+zstyle ':completion:*:ssh:*' hosts
+autoload -Uz compinit
+compinit
 
 ### HISTORY ###
 setopt share_history inc_append_history hist_expire_dups_first hist_reduce_blanks hist_find_no_dups
@@ -27,15 +28,22 @@ zle -N down-line-or-beginning-search
 autoload -Uz promptinit
 promptinit
 
+# Color codes
+# https://www.ditig.com/publications/256-colors-cheat-sheet
+
+# color root user red
 if [[ $USER == "root" ]]; then
     user_color="red"
 else
     user_color="white"
 fi
 
-# Work in default toolbox (no hostname set)
+# For OpenWRT
+[[ -z $HOSTNAME ]] && HOSTNAME=$(noglob uci get system.@system[0].hostname)
+
+# For toolbox
 if [[ -v TOOLBOX_PATH ]]; then
-    host_color=magenta
+  host_color=magenta
 else
   case $HOSTNAME in;
     laptop)
@@ -54,10 +62,23 @@ else
       host_color=yellow
       ;;
     htpc)
-      host_color=blue
+      host_color=214 # orange
       ;;
     hartmanlab)
       host_color=magenta
+      ;;
+    router)
+      host_color=blue
+      ;;
+    ax6000)
+      host_color=87 # slate gray
+      ;;
+    home-router)
+      host_color=218 # pink
+      ;;
+    *)
+      echo "Hostname $HOSTNAME unknown, consider adding to .zshrc"
+      host_color=white
       ;;
   esac
 fi
@@ -80,7 +101,7 @@ alias vmd='vmd -nt'
 alias -g dnf-list-files='dnf repoquery -l'
 alias -g gedit='gnome-text-editor'
 alias -g dnf='dnf5'
-# alias xclip="xclip -selection c" # shouldn't need this on wayland, use wl-copy instead
+alias xclip="xclip -selection c" # shouldn't need this on wayland, use wl-copy instead
 alias -g pdoman="podman"
 alias virtualenv-workon="workon"
 alias git-list="git ls-tree -r master --name-only"
