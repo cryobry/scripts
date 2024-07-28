@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# This function will create a random word pair with an underscore separator ex. turtle_ladder
+# It accepts one optional argument (an integer) (the number of words to return)
+random_words() {
+  local num=${1:-2}
+  local -a arr
+  for ((i=0;i<num;i++)); do
+    word=$(shuf -n1 /usr/share/dict/words | sed -e 's/-//g' -e 's/_//g')
+    # Sanitize
+    word="${word//-/}"
+    word="${word//_/}"
+    word="${word,,}"
+    arr+=("$word")
+  done
+  printf "%s_" "${arr[@]}" | sed 's/_$//'
+}
+
+# Allow this file to be executed directly if not being sourced
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+    random_words "$@"
+    exit $?
+fi
