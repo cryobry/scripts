@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+
+# Usage: ./ssh-wrap user@host
+
+# Capture SSH output
+output=$(ssh "$@" 2>&1)
+
+# Print the SSH output so user sees what happened
+echo "$output"
+
+# Check if the known_hosts warning appears
+if echo "$output" | grep -q "REMOTE HOST IDENTIFICATION HAS CHANGED"; then
+    echo "It appears the host key has changed or a man-in-the-middle attack is possible."
+
+    # Extract the known_hosts file and line number from the "Offending RSA key in ..." line
+    # The line format typically is: "Offending RSA key in /path/to/known_hosts:line"
+    # We'll use awk to split by ':' and space to grab the file and line number
+    if offending_info=$(echo "$output" | grep "Offending RSA key in"); then
+        KNOWN_HOSTS_FILE=$(echo "$offending_info" | awk '{print $5}' | cut -d: -f1)
+        LINE_NUMBER=$(echo "$offending_info" | awk -F: '{print $NF}')
+
+        echo "Offending key detected in: $KNOWN_HOSTS_FILE on line: $LINE_NUMBER"
+        read -p "Would you like to remove this offending key line and re-attempt the SSH connection? [y/N]: " RESPONSE
+        if [[ "$RESPONSE" =~ ^[Yy]$ ]]; then
+            # Backup known_hosts
+            cp "$KNOWN_HOSTS_FILE" "$KNOWN_HOSTS_FILE.bak"
+            # Remove offending line
+            sed -i "${LINE_NUMBER}d" "$KNOWN_HOSTS_FILE"
+            echo "Offending key removed. Retrying SSH connection..."
+            ssh "$@"
+        else
+            echo "Key was not removed. Exiting."
+        fi
+    else
+        echo "Could not extract offending key information. Remove it manually if needed."
+    fi
+fi
+

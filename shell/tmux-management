@@ -1,49 +1,79 @@
 #!/usr/bin/env bash
-# This script launches a multi-pane tmux session for multiple remotes
-# TODO make remote sessions run in tmux too
-# Copyright 2024 Bryan C. Roessler
+# tmux‑management2 – open a tiled tmux window with one pane per host.
+# Each pane attaches to (or creates) a tmux session called $REMOTE_SESSION
+# on the target host.  The local host is always the *last* (active) pane.
 
-# Use DEBUG=1 ./tmux-management to enable debugging
+set -euo pipefail
+
+# Configuration (override with env vars if desired)
+HOSTS=(workstation laptop vm-fedora42) # hosts in pane order
+REMOTE_SESSION=${REMOTE_SESSION:-main} # tmux session on remotes
+SYNCHRONIZE=${SYNCHRONIZE:-1} # 1 = broadcast keystrokes
+INCLUDE_LOCAL=${INCLUDE_LOCAL:-1} # 0 = skip local host
+LOCAL_SHELL_ONLY=${LOCAL_SHELL_ONLY:-0} # 1 = plain shell locally
 DEBUG=${DEBUG:-0}
 
-debug() { (( DEBUG )) && echo "Debug: $*"; }
+debug() { if (( DEBUG )); then echo "Debug: $*"; fi; }
 
-HOSTS=(
-  workstation
-  laptop
-  #hartmanlab
-)
-
-debug "Hosts list: ${HOSTS[*]}"
-
-# Remove localhost from HOSTS list
-TARGETS=()
-for HOST in "${HOSTS[@]}"; do
-    if [[ "$HOST" != "$HOSTNAME" ]]; then
-        TARGETS+=("$HOST")
-    fi
-done
-unset HOST
-
-# Create a unique session name from the remaining hosts
-SESSION=$(IFS=- ; echo "${TARGETS[*]}")
-
-debug "Targets: ${TARGETS[*]}"
-debug "Session: $SESSION"
-
-# Connect to existing session
-if tmux has-session -t "$SESSION" &> /dev/null; then
-  tmux attach -t "$SESSION";
-else # create new tmux session
-  tmux new-session -d -s "$SESSION" -n "$SESSION";
-  # Create a new pane for each TARGET
-  for TARGET in "${TARGETS[@]}"; do
-    tmux split-window -h;
-    tmux send "ssh $TARGET" enter;
+# Returns 0 if $2 is found in nameref array $1
+array_contains() {
+  local -n arr=$1
+  local needle=$2
+  for element in "${arr[@]}"; do
+    [[ "$element" == "$needle" ]] && return 0
   done
-  tmux set-window-option synchronize-panes on;
-  tmux select-pane -t "$SESSION:0.0"
-  tmux send 'clear' enter;
-  tmux attach-session -t "$SESSION"
+  return 1
+}
+
+LOCAL=$(hostname -s)
+
+# Build TARGETS list so that LOCAL is always last
+TARGETS=()
+for h in "${HOSTS[@]}"; do
+  [[ $h != "$LOCAL" ]] && TARGETS+=("$h")
+done
+if (( INCLUDE_LOCAL )); then
+  TARGETS+=("$LOCAL")
 fi
-unset TARGET
+
+(( ${#TARGETS[@]} )) || { echo "No hosts to connect to."; exit 1; }
+
+SESSION=$(IFS=-; echo "${TARGETS[*]}")
+debug "Session : $SESSION"
+debug "Targets : ${TARGETS[*]}"
+
+# Re‑attach if session already exists
+if tmux has-session -t "$SESSION" 2>/dev/null; then
+  exec tmux attach -t "$SESSION"
+fi
+
+# Builds the command that will run inside a pane
+open_cmd() {
+  local tgt=$1
+  if [[ $tgt == "$LOCAL" ]]; then
+    if (( LOCAL_SHELL_ONLY )); then
+      printf '%q -l' "${SHELL:-bash}"
+    else
+      printf 'tmux -L %q new -A -s %q' "${SESSION}_local" "$REMOTE_SESSION"
+    fi
+  else
+    printf 'ssh -t %q tmux new -A -s %q' "$tgt" "$REMOTE_SESSION"
+  fi
+}
+
+# Create the first pane
+tmux new-session -d -s "$SESSION" -n "$SESSION" "$(open_cmd "${TARGETS[0]}")"
+
+# Create remaining panes
+for tgt in "${TARGETS[@]:1}"; do
+  tmux split-window -t "$SESSION:0" -h "$(open_cmd "$tgt")"
+done
+
+tmux select-layout -t "$SESSION:0" tiled
+((SYNCHRONIZE)) && tmux setw -t "$SESSION:0" synchronize-panes on
+
+# Activate the last pane (local host)
+local_index=$(( ${#TARGETS[@]} - 1 ))
+tmux select-pane -t "$SESSION:0.$local_index"
+
+exec tmux attach -t "$SESSION"
