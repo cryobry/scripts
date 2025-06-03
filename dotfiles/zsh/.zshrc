@@ -1,4 +1,4 @@
-# SHELL OPTIONS
+# Shell options
 setopt autocd correct globdots extendedglob nomatch notify \
   share_history inc_append_history hist_expire_dups_first hist_reduce_blanks \
   hist_find_no_dups hist_verify extended_history auto_pushd pushd_ignore_dups \
@@ -6,7 +6,14 @@ setopt autocd correct globdots extendedglob nomatch notify \
 unsetopt beep
 bindkey -e
 
-# COMPLETION
+# Load secrets
+if [[ -f "$HOME/develop/scripts/dotfiles/zsh/.env" ]]; then
+  set -a   # automatically export all variables
+  source "$HOME/develop/scripts/dotfiles/zsh/.env"
+  set +a
+fi
+
+# Completions
 local compdump=${XDG_CACHE_HOME:-$HOME/.cache}/zsh/zcompdump-${HOST}-${ZSH_VERSION}
 [[ -d ${compdump:h} ]] || mkdir -p ${compdump:h}
 zstyle ':completion:*' menu select
@@ -15,7 +22,7 @@ zstyle ':completion:*:descriptions' format '%U%B%d%b%u'
 zmodload zsh/complist
 autoload -Uz compinit && compinit -d "$compdump"
 
-# HISTORY
+# History
 HISTFILE=${XDG_STATE_HOME:-$HOME/.local/state}/zsh/history
 [[ -d $HISTFILE:h ]] || mkdir -p $HISTFILE:h
 HISTSIZE=100000
@@ -24,16 +31,17 @@ autoload -Uz up-line-or-beginning-search down-line-or-beginning-search
 zle -N up-line-or-beginning-search
 zle -N down-line-or-beginning-search
 
-# COLORS
+# Colors
 autoload -Uz colors && colors
 
-# PROMPT
+# Prompt
 if [[ $EUID -eq 0 ]]; then
   user_color=red
 else
   user_color=white
 fi
 
+# Assign colors based on the hostname
 if [[ -v TOOLBOX_PATH ]]; then
   host_color=magenta
 elif [[ -v DISTROBOX_ENTER_PATH ]]; then
@@ -66,10 +74,10 @@ PROMPT='[%F{'$user_color'}%n%f@%F{'$host_color'}%m%f]%~$(_git_prompt)%(!.#.$) '
 RPROMPT='%*'
 precmd() { print -Pn "\e]0;%n@%m: ${PWD/#$HOME/~}\a" }
 
-# HOSTNAME (OpenWRT)
+# Set hostname on OpenWRT
 [[ -z $HOSTNAME ]] && HOSTNAME=$(noglob uci get system.@system[0].hostname 2>/dev/null)
 
-# PATHS
+# Paths
 typeset -U path PATH
 path=(
   $HOME/bin
@@ -78,9 +86,10 @@ path=(
   ${${GOPATH:-$HOME/go}//://bin:}/bin
   $path
 )
-export PATH R_LIBS_USER="$HOME/R/qhtcp-workflow"
+export PATH
+export R_LIBS_USER="$HOME/R/qhtcp-workflow"
 
-# ALIASES
+# Aliases
 alias ll='ls -lh'
 alias la='ls -A'
 alias vmd='vmd -nt'
@@ -92,7 +101,7 @@ alias workon='virtualenv-workon'
 alias git-list='git ls-tree -r HEAD --name-only'
 alias chatgpt='chatgpt --model gpt-4o'
 
-# KEYBINDINGS
+# Keybindings
 typeset -g -A key
 for k v in \
   Home khome End kend Insert kich1 Backspace kbs Delete kdch1 \
@@ -120,10 +129,11 @@ if (( ${+terminfo[smkx]} && ${+terminfo[rmkx]} )); then
   add-zle-hook-widget zle-line-finish  zle_app_finish
 fi
 
-# FUNCTIONS
+# Functions
 podman-update-images() {
   podman images --format '{{.Repository}}' | grep -v '^<none>$' | xargs -r -L1 podman pull
 }
+
 extract() {
   [[ $# -eq 0 ]] && { echo "usage: extract <archive...>" >&2; return 1; }
   for a in "$@"; do
@@ -148,5 +158,6 @@ extract() {
     esac
   done
 }
+
 buildah-prune() { buildah rm --all; }
 
