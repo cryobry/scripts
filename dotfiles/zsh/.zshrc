@@ -8,7 +8,7 @@ bindkey -e
 
 # Load secrets
 if [[ -f "$HOME/develop/scripts/dotfiles/zsh/.env" ]]; then
-  set -a   # automatically export all variables
+  set -a # automatically export all variables
   source "$HOME/develop/scripts/dotfiles/zsh/.env"
   set +a
 fi
@@ -82,8 +82,7 @@ typeset -U path PATH
 path=(
   $HOME/bin
   $HOME/.local/bin
-  $HOME/Documents/develop/scripts/shell
-  ${${GOPATH:-$HOME/go}//://bin:}/bin
+  $HOME/documents/develop/scripts/shell
   $path
 )
 export PATH
@@ -123,8 +122,8 @@ bindkey -- ${key[Down]-}      down-line-or-beginning-search
 
 if (( ${+terminfo[smkx]} && ${+terminfo[rmkx]} )); then
   autoload -Uz add-zle-hook-widget
-  zle_app_start()  { echoti smkx }
-  zle_app_finish() { echoti rmkx }
+  zle_app_start()  { echoti smkx; }
+  zle_app_finish() { echoti rmkx; }
   add-zle-hook-widget zle-line-init    zle_app_start
   add-zle-hook-widget zle-line-finish  zle_app_finish
 fi
@@ -134,30 +133,4 @@ podman-update-images() {
   podman images --format '{{.Repository}}' | grep -v '^<none>$' | xargs -r -L1 podman pull
 }
 
-extract() {
-  [[ $# -eq 0 ]] && { echo "usage: extract <archive...>" >&2; return 1; }
-  for a in "$@"; do
-    [[ ! -f $a ]] && { echo "$a: not a file" >&2; continue; }
-    case $a in
-      *.tar.bz2|*.tbz2) tar xvjf "$a" ;;
-      *.tar.gz|*.tgz)   tar xvzf "$a" ;;
-      *.tar.xz)         tar --xz -xvf "$a" ;;
-      *.tar.zst)        tar --use-compress-program=unzstd -xvf "$a" ;;
-      *.tar.lz)         tar --lzip -xvf "$a" ;;
-      *.tar)            tar xvf "$a" ;;
-      *.bz2)            bunzip2 "$a" ;;
-      *.gz)             gunzip "$a" ;;
-      *.xz)             unxz "$a" ;;
-      *.zst)            unzstd "$a" ;;
-      *.lz)             unlz "$a" ;;
-      *.zip)            unzip "$a" ;;
-      *.rar)            unrar x "$a" ;;
-      *.7z)             7z x "$a" ;;
-      *.Z)              uncompress "$a" ;;
-      *)                echo "$a: cannot extract" ;;
-    esac
-  done
-}
-
 buildah-prune() { buildah rm --all; }
-

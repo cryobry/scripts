@@ -1,29 +1,33 @@
 #!/usr/bin/env bash
-# This script/function will unzip most filetypes automatically
+# Unzip most filetypes automatically
 
-extract () {
-	if [ -f "$1" ] ; then
-		case "$1" in
-		*.tar.bz2) tar xjf "$1" ;;
-		*.tar.gz) tar xzf "$1" ;;
-		*.bz2) bunzip2 "$1" ;;
-		*.rar) unrar e "$1" ;;
-		*.gz) gunzip "$1" ;;
-		*.tar) tar xf "$1" ;;
-		*.tbz2) tar xjf "$1" ;;
-		*.tgz) tar xzf "$1" ;;
-		*.zip) unzip "$1" ;;
-		*.Z) uncompress "$1" ;;
-		*.7z) 7z x "$1" ;;
-		*) echo "$1 cannot be extracted via extract()" ;;
-		esac
-	else
-		echo "$1 is not a valid file"
-	fi
+extract() {
+  [[ $# -eq 0 ]] && { echo "usage: extract <archive...>" >&2; return 1; }
+  for a in "$@"; do
+    [[ ! -f $a ]] && { echo "$a: not a file" >&2; continue; }
+    case $a in
+      *.tar.bz2|*.tbz2) tar xvjf "$a" ;;
+      *.tar.gz|*.tgz)   tar xvzf "$a" ;;
+      *.tar.xz)         tar --xz -xvf "$a" ;;
+      *.tar.zst)        tar --use-compress-program=unzstd -xvf "$a" ;;
+      *.tar.lz)         tar --lzip -xvf "$a" ;;
+      *.tar)            tar xvf "$a" ;;
+      *.bz2)            bunzip2 "$a" ;;
+      *.gz)             gunzip "$a" ;;
+      *.xz)             unxz "$a" ;;
+      *.zst)            unzstd "$a" ;;
+      *.lz)             unlz "$a" ;;
+      *.zip)            unzip "$a" ;;
+      *.rar)            unrar x "$a" ;;
+      *.7z)             7z x "$a" ;;
+      *.Z)              uncompress "$a" ;;
+      *)                echo "$a: cannot extract" ;;
+    esac
+  done
 }
 
 # Allow script to be safely sourced
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
-    extract "$@"
-    exit $?
+	extract "$@"
+	exit $?
 fi
