@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+
+dotfiles-store() {
+  local subdir=$1; shift
+  local dotdir=~/scripts/dotfiles
+  mkdir -p "$dotdir/$subdir"
+  for src in "$@"; do
+    local filename
+    filename=$(basename "$src")
+    local dest="$dotdir/$subdir/$filename"
+    cp -ai "$src" "$dest" || { echo "Failed to copy $src"; continue; }
+    ln -sf "$dest" "$src"
+    echo "Moved $src → $dest and linked $src → $dest"
+  done
+}
+
+# Allow this file to be executed directly if not being sourced
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+    dotfiles-store "$@"
+fi

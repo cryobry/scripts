@@ -6,7 +6,7 @@
 set -euo pipefail
 
 # Configuration (override with env vars if desired)
-HOSTS=(workstation laptop vm-fedora42) # hosts in pane order
+HOSTS=(workstation laptop) # hosts in pane order
 REMOTE_SESSION=${REMOTE_SESSION:-main} # tmux session on remotes
 SYNCHRONIZE=${SYNCHRONIZE:-1} # 1 = broadcast keystrokes
 INCLUDE_LOCAL=${INCLUDE_LOCAL:-1} # 0 = skip local host

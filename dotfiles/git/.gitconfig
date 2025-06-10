@@ -1,8 +1,0 @@
-# This is Git's per-user configuration file.
-[user]
-	email = bryanroessler@gmail.com
-	name = Bryan Roessler
-[color]
-	ui = auto
-[credential]
-	helper = cache

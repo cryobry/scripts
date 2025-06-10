@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+SEARCH_DIR="${1:-$(pwd)}"
+OUT_DIR="${2:-"$SEARCH_DIR/out"}"
+mkdir -p "$OUT_DIR"
+prev_season=""
+ep=1
+
+find "$SEARCH_DIR" -type f -iname '*.iso' | sort | while read -r iso; do
+  echo "$iso"
+  parent=$(basename "$(dirname "$iso")")
+  [[ $parent =~ S([0-9]+) ]] || continue
+  season=$(printf "%02d" "${BASH_REMATCH[1]}")
+
+  [[ $season != "$prev_season" ]] && { ep=1; prev_season=$season; }
+
+  ripdir="$OUT_DIR/temp/$parent"
+  mkdir -p "$ripdir" "$OUT_DIR/Season $season"
+  snap run makemkv.makemkvcon -r mkv --minlength=1800 iso:"$iso" all "$ripdir"
+
+  for mkv in "$ripdir"/*.mkv; do
+    out="$OUT_DIR/Season $season/S${season}E$(printf "%02d" "$ep").mkv"
+    ffmpeg -nostdin -hide_banner -loglevel error -i "$mkv" \
+      -map 0:v -map 0:a:m:language:eng -map 0:s:m:language:eng \
+      -c copy "$out"
+    rm "$mkv"
+    ((ep++))
+  done
+done
