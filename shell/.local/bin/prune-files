@@ -1,15 +1,17 @@
 #!/usr/bin/env bash
 # Remove all but the latest N versions of files matching given prefixes
-# See prunefiles --help for usage
+# Usage: prune-files -k 3 thisfileprefix [thatfileprefix]
+# Copyright 2021-2025 Bryan C. Roessler
+# Licensed under the Apache License, Version 2.0
 
-prunefiles() {
+prune-files() {
   declare -ag PREFIXES
   declare -g KEEP_INT=1 # default number of files to keep
 
   printHelpAndExit() {
     cat <<-'EOF'
 			USAGE:
-			  prunefiles -k 3 thisfileprefix [thatfileprefix]
+			  prune-files -k 3 thisfileprefix [thatfileprefix]
 
 			OPTIONS:
 			  -k, --keep NUMBER
@@ -65,6 +67,6 @@ prunefiles() {
 
 # Allow script to be safely sourced
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
-  prunefiles "$@"
+  prune-files "$@"
   exit $?
 fi

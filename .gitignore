@@ -1,4 +1,5 @@
 .vscode/
-setup/
 .old/
-jriver
+jriver/
+secrets/
+.env
