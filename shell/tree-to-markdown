@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# Make a nice markdown file from a dir tree
+# Copyright 2021 Bryan C. Roessler
+# Licensed under the Apache License, Version 2.0
+
+tree=$(tree -f --noreport --charset ascii "$1" |
+sed -e 's/| \+/  /g' -e 's/[|`]-\+/ */g' -e 's:\(* \)\(\(.*/\)\([^/]\+\)\):\1[\4](\2):g')
+printf "# Code/Directory Structure:\n\n%s" "$tree"
