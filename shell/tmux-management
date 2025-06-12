@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# tmux‑management2 – open a tiled tmux window with one pane per host.
-# Each pane attaches to (or creates) a tmux session called $REMOTE_SESSION
-# on the target host.  The local host is always the *last* (active) pane.
+# Open a tiled tmux window with one pane per host each in its own tmux session
+# The local host is always the last (active) pane.
+# Copyright 2021-2025 Bryan C. Roessler
+# Licensed under the Apache License, Version 2.0
 
 set -euo pipefail
 

@@ -1,11 +1,7 @@
 #!/usr/bin/env bash
-# This script will clean the history file of sensitive info
-#
+# This script will clean the history file of PGP messages and keys
 
 histfile="${1:-$HISTFILE:-$HOME/.histfile}"
-
 cp -a "$histfile" "/tmp/$histfile.bak"
-
 sed --in-place '/gpg/d' "$histfile"
-
 sed --in-place '/-----BEGIN PGP MESSAGE-----/,/-----END PGP MESSAGE-----/d' "$histfile"

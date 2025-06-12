@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 
 dotfiles-store() {
+  [[ $# -lt 2 ]] && { echo "Usage: $0 <subdir> <file1> [<file2> ...]"; return 1; }
   local subdir=$1; shift
-  local dotdir=~/scripts/dotfiles
+  local dotdir=~/develop/dotfiles
   mkdir -p "$dotdir/$subdir"
   for src in "$@"; do
     local filename

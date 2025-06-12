@@ -1,31 +1,34 @@
 #!/usr/bin/env bash
-# This script will perform speedtests over wireguard and the
-# native connections and print their output
-#
+# This script performs speedtests over Wireguard and native connections and prints their output
 
-_speedTestData() {
-
-	local pingbps ping_f bps_f bps_int
-	export ping_int mbps_int
-
-	pingbps=$(speedtest-cli --no-upload --csv "$@" | cut -d"," -f7-8)
-	ping_f="${pingbps%,*}" # grab first value
-	ping_int="${ping_f%.*}" # make integer
-	bps_f="${pingbps#*,}" # grab second value
-	bps_int="${bps_f%.*}" # make integer
-	mbps_int=$((bps_int / 1000000)) # convert to mbps
+run_test() {
+    local output pingBps pingPart bpsPart bpsInt
+    # Run speedtest-cli and extract the 7th and 8th CSV fields
+    output=$(speedtest-cli --no-upload --csv "$@" 2>/dev/null) || return 1
+    pingBps=$(echo "$output" | cut -d"," -f7-8)
+    
+    # Extract ping value (as an integer) and bps (and convert to Mbps)
+    pingPart="${pingBps%,*}"
+    bpsPart="${pingBps#*,}"
+    pingInt="${pingPart%.*}"
+    bpsInt="${bpsPart%.*}"
+    mbpsInt=$(( bpsInt / 1000000 ))
+    
+    echo "$pingInt $mbpsInt"
 }
 
 # Test Wireguard using automatic server selection
-if _speedTestData; then
-	echo "Wireguard:"
-	echo -e "\tPing: $ping_int"
-	echo -e "\tMbps: $mbps_int"
+if output=$(run_test); then
+    read -r pingInt mbpsInt <<< "$output"
+    echo "Wireguard:"
+    echo -e "\tPing: $pingInt"
+    echo -e "\tMbps: $mbpsInt"
 fi
 
 # Test native connection to ISP
-if _speedTestData --server 17170; then
-	echo "Native:"
-	echo -e "\tPing: $ping_int"
-	echo -e "\tMbps: $mbps_int"
+if output=$(run_test --server 17170); then
+    read -r pingInt mbpsInt <<< "$output"
+    echo "Native:"
+    echo -e "\tPing: $pingInt"
+    echo -e "\tMbps: $mbpsInt"
 fi

@@ -1,3 +1,0 @@
-#!/usr/bin/env bash
-
-sudo homectl --storage=subvolume --real-name=Bryan --member-of=wheel --shell=/usr/bin/zsh --timezone=America/New_York -P --auto-login=on create bryan

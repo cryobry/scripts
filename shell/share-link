@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # Nautilus script for creating one or more shared links
-# Requires wl-clipboard and notify-send 
+# Requires wl-clipboard and notify-send
+# Copyright 2021-2025 Bryan C. Roessler
+# Licensed under the Apache License, Version 2.0
 
 ssh_server="bryanroessler.com"
 ssh_files_path="/var/www/repos.bryanroessler.com/files"

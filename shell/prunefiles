@@ -1,79 +1,70 @@
 #!/usr/bin/env bash
-# prunefiles, a script/function to remove all but the n latest versions of a file
-#
+# Remove all but the latest N versions of files matching given prefixes
+# See prunefiles --help for usage
 
-prunefiles () {
+prunefiles() {
+  declare -ag PREFIXES
+  declare -g KEEP_INT=1 # default number of files to keep
 
-    declare -ag PREFIXES
-    declare -g KEEP_INT=1 # default # of files to keep
-
-    printHelpAndExit () {
-
+  printHelpAndExit() {
     cat <<-'EOF'
-		USAGE:
-		    pruneFiles -k 3 thisfileprefix [thatfileprefix]
+			USAGE:
+			  prunefiles -k 3 thisfileprefix [thatfileprefix]
 
-		OPTIONS
-		    -k, --keep NUMBER
-		        Keep NUMBER of latest files that matches each file prefix (Default: 1)
-		    -h, --help
-		        Print this help dialog and exit
-	EOF
+			OPTIONS:
+			  -k, --keep NUMBER
+			    Keep NUMBER of the latest files that match each file prefix (Default: 1)
+			  -h, --help
+			    Print this help dialog and exit
+		EOF
+    [[ -z "$1" ]] && exit 0 || exit "$1"
+  }
 
-    # Exit using passed exit code
-    [[ -z $1 ]] && exit 0 || exit "$1"
+  parseInput() {
+    if _input=$(getopt -o hk: -l help,keep: -- "$@"); then
+      eval set -- "$_input"
+      while true; do
+        case "$1" in
+          -k|--keep) shift; KEEP_INT="$1" ;;
+          -h|--help) printHelpAndExit 0 ;;
+          --) shift; break ;;
+        esac
+        shift
+      done
+    else
+      echo "Incorrect option(s) provided"
+      printHelpAndExit 1
+    fi
+    PREFIXES=("$@")
+  }
 
-    }
+  findAndRemove() {
+    local prefix file
 
-    parseInput () {
+    for prefix in "${PREFIXES[@]}"; do
+      # List files matching the prefix sorted by modification time (latest first),
+      # then remove all except the first KEEP_INT files.
+      while IFS= read -r file; do
+        echo "Removing: $file"
+        rm -- "$file"
+      done < <(
+        find . -maxdepth 1 -type f -name "${prefix}*" -printf '%T@ %p\n' | \
+        sort -rn | \
+        awk -v keep="$KEEP_INT" 'NR > keep {print $2}'
+      )
+    done
+  }
 
-        if _input=$(getopt -o +hk: -l help,keep: -- "$@"); then
-            eval set -- "$_input"
-            while true; do
-                case "$1" in
-                    -k|--keep)
-                        shift && KEEP_INT=$1
-                        ;;
-                    -h|--help)
-                        printHelpAndExit 0
-                        ;;
-                    --)
-                        shift; break
-                        ;;
-                esac
-                shift
-            done
-        else
-            echo "Incorrect option(s) provided"
-            printHelpAndExit 1
-        fi
+  main() {
+    parseInput "$@"
+    findAndRemove
+  }
 
-        PREFIXES=( "$@" )
-    }
-
-
-    findAndRemove () {
-
-        declare prefix file
-
-        for prefix in "${PREFIXES[@]}"; do
-            for file in $(find . -maxdepth 1 -type f -name "${prefix}*" -printf '%T@ %p\n' | sort -r -z -n | tail -n+$((KEEP_INT + 1)) | awk '{ print $2; }'); do
-                rm "$file"
-            done
-        done
-    }
-
-
-    main () {
-        parseInput "$@"
-        findAndRemove
-    }
-
-    main "$@"
+  main "$@"
 }
 
 # Allow script to be safely sourced
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
-    prunefiles "$@"
-    exit $?
+  prunefiles "$@"
+  exit $?
 fi
