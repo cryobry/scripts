@@ -1,0 +1,11 @@
+#!/usr/bin/env python
+import qrcode
+
+address = "bc1q7wy0kszjavgcrvkxdg7mf3s6rh506rasnhfa4a"
+label = "Bryan C. Roessler"
+message = "Thanks for your donation"
+
+uri = f"bitcoin:{address}&label={label}&message={message}"
+
+qr = qrcode.make(uri)
+qr.save("bitcoin_qr.png")

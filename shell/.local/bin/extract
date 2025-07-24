@@ -2,26 +2,22 @@
 # Unzip most filetypes automatically
 
 extract() {
+  local a
   [[ $# -eq 0 ]] && { echo "usage: extract <archive...>" >&2; return 1; }
   for a in "$@"; do
     [[ ! -f $a ]] && { echo "$a: not a file" >&2; continue; }
     case $a in
-      *.tar.bz2|*.tbz2) tar xvjf "$a" ;;
-      *.tar.gz|*.tgz)   tar xvzf "$a" ;;
-      *.tar.xz)         tar --xz -xvf "$a" ;;
-      *.tar.zst)        tar --use-compress-program=unzstd -xvf "$a" ;;
-      *.tar.lz)         tar --lzip -xvf "$a" ;;
-      *.tar)            tar xvf "$a" ;;
-      *.bz2)            bunzip2 "$a" ;;
-      *.gz)             gunzip "$a" ;;
-      *.xz)             unxz "$a" ;;
-      *.zst)            unzstd "$a" ;;
-      *.lz)             unlz "$a" ;;
-      *.zip)            unzip "$a" ;;
-      *.rar)            unrar x "$a" ;;
-      *.7z)             7z x "$a" ;;
-      *.Z)              uncompress "$a" ;;
-      *)                echo "$a: cannot extract" ;;
+      *.tar.*|*.tgz|*.tbz2) tar xvf "$a" --auto-compress ;;
+      *.tar)                tar xvf "$a" ;;
+      *.gz)                 gunzip "$a" ;;
+      *.bz2)                bunzip2 "$a" ;;
+      *.xz)                 unxz "$a" ;;
+      *.zst)                unzstd "$a" ;;
+      *.zip)                unzip "$a" ;;
+      *.rar)                unrar x "$a" ;;
+      *.7z)                 7z x "$a" ;;
+      *.Z)                  uncompress "$a" ;;
+      *)                    echo "$a: cannot extract" ;;
     esac
   done
 }
@@ -29,5 +25,5 @@ extract() {
 # Allow script to be safely sourced
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
 	extract "$@"
-	exit $?
+	exit
 fi

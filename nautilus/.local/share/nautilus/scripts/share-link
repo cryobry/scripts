@@ -13,23 +13,26 @@ if [[ "$#" -lt 1 ]]; then
 	exit 1
 fi
 
-hash wl-copy &>/dev/null || echo "Please install wl-copy (usually in the wl-clipboard package)"
+hash wl-copy &>/dev/null || { echo "Please install wl-copy"; exit 1; }
+hash rsync &>/dev/null || { echo "Please install rsync"; exit 1; }
 
 if [[ -v NAUTILUS_SCRIPT_SELECTED_URIS ]]; then
 	readarray -t files <<< "$NAUTILUS_SCRIPT_SELECTED_URIS"
-	files=("${files[@]#file://}")
-	files=("${files[@]//\%20/ }")
+	for f in "${files[@]}"; do
+		f="${f#file://}"
+		f="${f//\%20/ }"
+		fixed_files+=("$f")
+	done
 else
-	files=("$@")
+	fixed_files=("$@")
 fi
 
-for file in "${files[@]}"; do
-	[[ "$file" == "" ]] && continue
-	echo here
-    fname="${file##*/}"
-    random64=$(tr -dc 'a-zA-Z0-9' < /dev/urandom | fold -w 64 | head -n 1)
-	echo "rsync -a ${file} ${ssh_server}:${ssh_files_path}/${random64}/"
-	nohup rsync -a "${file}" "${ssh_server}:${ssh_files_path}/${random64}/" &
+links_array=()
+for f in "${fixed_files[@]}"; do
+	[[ "$f" == "" ]] && continue
+	fname="${f##*/}"
+	random64=$(tr -dc 'a-zA-Z0-9' < /dev/urandom | fold -w 64 | head -n 1)
+	nohup rsync -a "$f" "${ssh_server}:${ssh_files_path}/${random64}/" &
 	links_array+=("$www_files_path/${random64}/${fname// /%20}")
 done
 

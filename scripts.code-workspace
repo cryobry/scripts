@@ -1,0 +1,17 @@
+{
+	"folders": [
+		{
+			"name": "scripts",
+			"path": "."
+		},
+		{
+			"name": "dotfiles",
+			"path": "../dotfiles"
+		},
+		{
+			"name": "hartmanlab",
+			"path": "../hartmanlab"
+		}
+	],
+	"settings": {}
+}
